@@ -46,6 +46,14 @@ void afficherGrille(Grille *grille) {
     }
 }
 
+void libererGrille(Grille *grille) {
+    for (int i = 0; i < grille->longueur; i++) {
+        free(grille->cases[i]); // Libère chaque ligne
+    }
+    free(grille->cases);       // Libère le tableau de pointeurs
+    free(grille);              // Libère la structure elle-même
+}
+
 
 // Exemple d'utilisation
 int main() {
