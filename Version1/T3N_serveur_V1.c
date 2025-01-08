@@ -101,9 +101,12 @@ int main(int argc, char const *argv[])
         if (x >= 0 && x < longueur && y >= 0 && y < largeur && morpion->cases[x][y].symbole == ' ') {
             morpion->cases[x][y].symbole = 'X'; // Client joue
         } else {
-            printf("Case invalide ou déjà occupée.\n");
+            printf("Case invalide ou déjà occupée : (%d, %d).\n", x, y);
             continue;
         }
+
+        printf("Grille après le coup du client :\n");
+        afficherGrille(morpion);
 
         // Tour du serveur de jouer
         int caseServeur;
@@ -115,7 +118,7 @@ int main(int argc, char const *argv[])
 
         // Placer le symbole du serveur
         morpion->cases[x][y].symbole = 'O';
-        printf("Serveur joue à la case : %d \n", caseServeur);
+        printf("Serveur joue à la case : %d (coordonnées: [%d][%d])\n", caseServeur, x, y);
 
         // Envoyer la case choisie au client
         char caseEnvoyee[3];
@@ -124,6 +127,10 @@ int main(int argc, char const *argv[])
             perror("Erreur lors de l'envoi des données...");
             break;
         }
+
+        // Afficher la grille après le choix du serveur
+        printf("Grille après le coup du serveur :\n");
+        afficherGrille(morpion);
     }
 
     close(socketEcoute);

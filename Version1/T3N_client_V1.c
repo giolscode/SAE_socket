@@ -99,7 +99,7 @@ int main(int argc, char *argv[]) {
             int x = (caseServeur - 1) / 3;
             int y = (caseServeur - 1) % 3;
             morpion->cases[x][y].symbole = 'O';
-            printf("Le serveur a joué à la case : %d \n", caseServeur);
+            printf("Le serveur a joué à la case : %d (coordonnées : [%d][%d])\n", caseServeur, x, y);
         }
     }
 
