@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
         }
         buffer[nb] = '\0';
 
-
+        
     }
 
     libererGrille(morpion); 

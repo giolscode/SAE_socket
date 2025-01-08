@@ -6,6 +6,7 @@
 #include <string.h> /* pour memset */
 #include <netinet/in.h> /* pour struct sockaddr_in */
 #include <arpa/inet.h> /* pour htons et inet_aton */
+#include "Grille.h"
 
 #define PORT 6000 
 #define LG_MESSAGE 256
@@ -13,6 +14,10 @@
 int main(int argc, char const *argv[])
 {
     int socketEcoute;
+    Grille *morpion;
+    int x,y,numCase;
+    int longueur = 3;
+    int largeur = 3;
 
 	struct sockaddr_in pointDeRencontreLocal;
 	socklen_t longueurAdresse;
@@ -46,13 +51,86 @@ int main(int argc, char const *argv[])
 	}
 	printf("Socket attachée avec succès !\n");
 
-    //en Ecoute
+    //mise en écoute
     if(listen(socketEcoute, 5) < 0){
    		perror("listen");
    		exit(-3);
 	}
-	printf("Socket placée en écoute passive ...\n");
-    
+	printf("Socket placée en écoute passive ... \n \n");
 
+    //envoie du message start
+    send(socketEcoute,"start",strlen("start")+1,0);
+
+    //initialisation de la grille
+    morpion = creerGrille(longueur,largeur);
+    afficherGrille(morpion);
+
+    // boucle d’attente de connexion : en théorie, un serveur attend indéfiniment ! 
+	while(1){
+		memset(messageRecu, 'a', LG_MESSAGE*sizeof(char));
+		printf("Attente d’une demande de connexion (quitter avec Ctrl-C)\n\n");
+		
+		// c’est un appel bloquant
+		socketDialogue = accept(socketEcoute, (struct sockaddr *)&pointDeRencontreDistant, &longueurAdresse);
+		if (socketDialogue < 0) {
+   			perror("accept");
+			close(socketDialogue);
+   			close(socketEcoute);
+   			exit(-4);
+		}
+		
+		// On réception les données du client (cf. protocole)
+		lus = recv(socketDialogue, messageRecu, LG_MESSAGE*sizeof(char),0); // ici appel bloquant
+		switch(lus) {
+			case -1 : /* une erreur ! */ 
+				  perror("read"); 
+				  close(socketDialogue); 
+				  exit(-5);
+			case 0  : /* la socket est fermée */
+				  fprintf(stderr, "La socket a été fermée par le client !\n\n");
+   				  close(socketDialogue);
+   				  return 0;
+			default:  /* réception de n octets */
+				  printf("Message reçu : %s (%d octets)\n\n", messageRecu, lus);
+		}
+
+        // Interprétation des coordonnées jouées par le client
+        int numCase = messageRecu[0] - '0' ; 
+        int x = (numCase - 1) / largeur ; //Ligne
+        int y = (numCase - 1) % longueur ;  //colonne
+
+        if (numCase >= 1 && numCase <= longueur * largeur && morpion->cases[x][y].symbole == ' '){
+            morpion->cases[x][y].symbole = 'X' ; 
+        }
+        else{
+            perror("CASE OCCUPÉE");
+        }
+
+        // Afficher la grille mise à jour
+        printf("Grille après le coup du client :\n");
+        afficherGrille(morpion);
+
+        int caseServeur;
+        
+        do {
+            caseServeur = rand() % (largeur * longueur) + 1; // Nombre aléatoire entre 1 et 9
+            x = (caseServeur - 1) / largeur; // Ligne
+            y = (caseServeur - 1) % longueur; // Colonne
+        } while (morpion->cases[x][y].symbole != ' '); // Répéter tant que la case est occupée
+
+        morpion->cases[x][y].symbole = 'O'; // Serveur joue
+
+        // Envoyer la case choisie au client
+        char caseEnvoyee[3];
+        snprintf(caseEnvoyee, sizeof(caseEnvoyee), "%d", caseServeur);
+        send(socketDialogue, caseEnvoyee, strlen(caseEnvoyee) + 1, 0);
+
+        // Afficher la grille après le choix du serveur
+        printf("Grille après le coup du serveur :\n");
+        afficherGrille(morpion);
+
+	}
+    
+    close(socketEcoute);
     return 0;
 }

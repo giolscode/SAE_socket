@@ -11,24 +11,26 @@ typedef struct {
     Case **cases; 
 } Grille;
 
-// Fonction pour créer une grille
+// Fonction pour créer une grille avec numérotation des cases
 Grille* creerGrille(int longueur, int largeur) {
     Grille *grille = (Grille*)malloc(sizeof(Grille));
     grille->longueur = longueur;
     grille->largeur = largeur;
 
     grille->cases = (Case**)malloc(longueur * sizeof(Case*));
+    int numero = 1; // Compteur pour numéroter les cases
     for (int i = 0; i < longueur; i++) {
         grille->cases[i] = (Case*)malloc(largeur * sizeof(Case));
         for (int j = 0; j < largeur; j++) {
-            grille->cases[i][j].symbole = ' '; // Initialement vide
+            grille->cases[i][j].symbole = '0' + numero; // Convertit le numéro en caractère
+            numero++;
         }
     }
 
     return grille;
 }
 
-// Fonction pour afficher la grille
+// Fonction pour afficher la grille avec numérotation
 void afficherGrille(Grille *grille) {
     for (int i = 0; i < grille->longueur; i++) {
         for (int j = 0; j < grille->largeur; j++) {
@@ -46,21 +48,11 @@ void afficherGrille(Grille *grille) {
     }
 }
 
+// Fonction pour libérer la mémoire allouée pour la grille
 void libererGrille(Grille *grille) {
     for (int i = 0; i < grille->longueur; i++) {
-        free(grille->cases[i]); // Libère chaque ligne
+        free(grille->cases[i]);
     }
-    free(grille->cases);       // Libère le tableau de pointeurs
-    free(grille);              // Libère la structure elle-même
-}
-
-
-// Exemple d'utilisation
-int main() {
-    Grille *grille = creerGrille(3, 3);
-
-    printf("Grille initiale :\n");
-    afficherGrille(grille);
-
-    return 0;
+    free(grille->cases);
+    free(grille);
 }
