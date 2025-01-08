@@ -10,16 +10,51 @@
 
 #define LG_MESSAGE 256
 
+
+void traiterAction(const char *action, int caseServeur, Grille *morpion) {
+
+    if (strcmp(action, "continue") == 0) {
+        printf("Le serveur a joué à la case %d. La partie continue.\n", caseServeur);
+    } 
+    else if (strcmp(action, "Owins") == 0) {
+        printf("Le serveur a joué à la case %d. Le serveur (O) a gagné !\n", caseServeur);
+        afficherGrille(morpion);
+        // Fin de la partie, quitter la boucle
+        return;
+    } 
+    else if (strcmp(action, "Oend") == 0) {
+        printf("Le serveur a joué à la case %d. Grille pleine, pas de gagnant.\n", caseServeur);
+        afficherGrille(morpion);
+        // Fin de la partie, quitter la boucle
+        return;
+    } 
+    else if (strcmp(action, "Xwins") == 0) {
+        printf("Félicitations ! Vous avez gagné !\n");
+        afficherGrille(morpion);
+        // Fin de la partie, quitter la boucle
+        return;
+    } 
+    else if (strcmp(action, "Xend") == 0) {
+        printf("Grille pleine, pas de gagnant. La partie est terminée.\n");
+        afficherGrille(morpion);
+        // Fin de la partie, quitter la boucle
+        return;
+    } 
+    else {
+        printf("Message inconnu reçu : %s\n", action);
+    }
+}
+
+
 int main(int argc, char *argv[]) {
     int descripteurSocket;
-    
     struct sockaddr_in sockaddrDistant;
     socklen_t longueurAdresse;
+
     Grille *morpion;
     int lgn, cln;
-    char buffer[LG_MESSAGE]; 
+    char messageRecu[LG_MESSAGE]; 
     int nb;
-
     char ip_dest[16];
     int port_dest;
 
@@ -55,11 +90,12 @@ int main(int argc, char *argv[]) {
     }
     printf("Connexion au serveur %s:%d réussie!\n", ip_dest, port_dest);
 
+    // Initialiser la grille
     morpion = creerGrille(3, 3);
 
     while (1) {
         afficherGrille(morpion);
-        printf("Quelle case voulez-vous choisir ? (Ligne colonne, séparée par un espace)\n");
+        printf("Quelle case voulez-vous choisir ? (Ligne colonne, séparées par un espace)\n");
 
         if (scanf("%d %d", &lgn, &cln) != 2) {
             printf("Erreur : Il faut saisir la ligne et la colonne dans la grille séparées par un espace !\n");
@@ -69,38 +105,45 @@ int main(int argc, char *argv[]) {
         int ligne = lgn - 1;
         int colonne = cln - 1;
 
-        if (morpion->cases[ligne][colonne].symbole != ' ') {
-            printf("Erreur : Cette case est déjà occupée !\n");
+        if (ligne < 0 || ligne >= 3 || colonne < 0 || colonne >= 3 || morpion->cases[ligne][colonne].symbole != ' ') {
+            printf("Erreur : Case invalide ou déjà occupée !\n");
             continue;
         }
 
         morpion->cases[ligne][colonne].symbole = 'X';
 
         // Envoyer le coup au serveur
-        snprintf(buffer, LG_MESSAGE, "%d %d", ligne, colonne);
-        nb = write(descripteurSocket, buffer, strlen(buffer));
+        snprintf(messageRecu, LG_MESSAGE, "%d %d", ligne, colonne);
+        nb = write(descripteurSocket, messageRecu, strlen(messageRecu));
         if (nb <= 0) {
             perror("Erreur lors de l'envoi des données...");
             break;
         }
 
-        // Attendre le coup du serveur
-        nb = read(descripteurSocket, buffer, LG_MESSAGE);
+        // Attendre la réponse du serveur
+        nb = read(descripteurSocket, messageRecu, LG_MESSAGE);
         if (nb <= 0) {
             perror("Erreur lors de la réception des données...");
             break;
         }
 
-        buffer[nb] = '\0';
-        
-        // Le serveur a joué
+        messageRecu[nb] = '\0';
+
+        // Gestion des messages du serveur
+        char action[10];
         int caseServeur;
-        if (sscanf(buffer, "%d", &caseServeur) == 1) {
-            int x = (caseServeur - 1) / 3;
-            int y = (caseServeur - 1) % 3;
+
+        sscanf(messageRecu, "%s %d", action, &caseServeur);
+
+        int x = (caseServeur - 1) / 3;
+        int y = (caseServeur - 1) % 3;
+
+        if (caseServeur >= 1 && caseServeur <= 9) {
             morpion->cases[x][y].symbole = 'O';
-            printf("Le serveur a joué à la case : %d (coordonnées : [%d][%d])\n", caseServeur, x, y);
         }
+
+        traiterAction(action,caseServeur,morpion);
+
     }
 
     libererGrille(morpion); 
