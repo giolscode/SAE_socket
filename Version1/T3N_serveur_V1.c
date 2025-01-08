@@ -6,10 +6,72 @@
 #include <string.h> /* pour memset */
 #include <netinet/in.h> /* pour struct sockaddr_in */
 #include <arpa/inet.h> /* pour htons et inet_aton */
+#include <stdbool.h>
 #include "Grille.h"
 
 #define PORT 6000 
 #define LG_MESSAGE 256
+
+// Vérifie si un joueur a gagné
+bool verifierVictoire(Grille *grille, char joueur) {
+    int i, j;
+
+    // Vérification des lignes
+    for (i = 0; i < grille->longueur; i++) {
+        bool victoire = true;
+        for (j = 0; j < grille->largeur; j++) {
+            if (grille->cases[i][j].symbole != joueur) {
+                victoire = false;
+                break;
+            }
+        }
+        if (victoire) return true;
+    }
+
+    // Vérification des colonnes
+    for (j = 0; j < grille->largeur; j++) {
+        bool victoire = true;
+        for (i = 0; i < grille->longueur; i++) {
+            if (grille->cases[i][j].symbole != joueur) {
+                victoire = false;
+                break;
+            }
+        }
+        if (victoire) return true;
+    }
+
+    // Vérification de la diagonale principale
+    bool victoireDiag1 = true;
+    for (i = 0; i < grille->longueur; i++) {
+        if (grille->cases[i][i].symbole != joueur) {
+            victoireDiag1 = false;
+            break;
+        }
+    }
+    if (victoireDiag1) return true;
+
+    // Vérification de la diagonale secondaire
+    bool victoireDiag2 = true;
+    for (i = 0; i < grille->longueur; i++) {
+        if (grille->cases[i][grille->largeur - i - 1].symbole != joueur) {
+            victoireDiag2 = false;
+            break;
+        }
+    }
+    if (victoireDiag2) return true;
+
+    return false;
+}
+
+// Vérifie si la grille est pleine
+bool grillePleine(Grille *grille) {
+    for (int i = 0; i < grille->longueur; i++) {
+        for (int j = 0; j < grille->largeur; j++) {
+            if (grille->cases[i][j].symbole == ' ') return false;
+        }
+    }
+    return true;
+}
 
 int main(int argc, char const *argv[])
 {
@@ -108,6 +170,19 @@ int main(int argc, char const *argv[])
         printf("Grille après le coup du client :\n");
         afficherGrille(morpion);
 
+        // Vérifications de victoire ou de fin de jeu pour le client
+        if (verifierVictoire(morpion, 'X')) {
+            send(socketDialogue, "Xwins", strlen("Xwins") + 1, 0);
+            printf("Le joueur X a gagné !\n");
+            break;
+        }
+
+        if (grillePleine(morpion)) {
+            send(socketDialogue, "Xend", strlen("Xend") + 1, 0);
+            printf("La grille est pleine. Fin de la partie.\n");
+            break;
+        }
+
         // Tour du serveur de jouer
         int caseServeur;
         do {
@@ -128,10 +203,26 @@ int main(int argc, char const *argv[])
             break;
         }
 
+        // Vérifications de victoire ou de fin de jeu pour le serveur
+        if (verifierVictoire(morpion, 'O')) {
+            send(socketDialogue, "Owins", strlen("Owins") + 1, 0);
+            printf("Le joueur O a gagné !\n");
+            break;
+        }
+
+        if (grillePleine(morpion)) {
+            send(socketDialogue, "Oend", strlen("Oend") + 1, 0);
+            printf("La grille est pleine. Fin de la partie.\n");
+            break;
+        }
+
+        // Continuer le jeu si aucune condition de fin n'est atteinte
+        send(socketDialogue, "continue", strlen("continue") + 1, 0);
+    }
+
         // Afficher la grille après le choix du serveur
         printf("Grille après le coup du serveur :\n");
         afficherGrille(morpion);
-    }
 
     close(socketEcoute);
     return 0;

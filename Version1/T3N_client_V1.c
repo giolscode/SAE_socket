@@ -5,52 +5,35 @@
 #include <sys/socket.h>
 #include <string.h> 
 #include <netinet/in.h> 
-#include <arpa/inet.h> 
+#include <arpa/inet.h>
 #include "Grille.h"
 
 #define LG_MESSAGE 256
 
-
 void traiterAction(const char *action, int caseServeur, Grille *morpion) {
-
-    int condition = 1 ; 
-    while (condition != 0)
-    {
-        if (strcmp(action, "continue") == 0) {
+    if (strcmp(action, "continue") == 0) {
         printf("Le serveur a joué à la case %d. La partie continue.\n", caseServeur);
-        } 
-        else if (strcmp(action, "Owins") == 0) {
-            printf("Le serveur a joué à la case %d. Le serveur (O) a gagné !\n", caseServeur);
-            afficherGrille(morpion);
-            // Fin de la partie, quitter la boucle
-            condition = 0;
-        } 
-        else if (strcmp(action, "Oend") == 0) {
-            printf("Le serveur a joué à la case %d. Grille pleine, pas de gagnant.\n", caseServeur);
-            afficherGrille(morpion);
-            // Fin de la partie, quitter la boucle
-            condition =  0;
-        } 
-        else if (strcmp(action, "Xwins") == 0) {
-            printf("Félicitations ! Vous avez gagné !\n");
-            afficherGrille(morpion);
-            // Fin de la partie, quitter la boucle
-            condition = 0;
-        } 
-        else if (strcmp(action, "Xend") == 0) {
-            printf("Grille pleine, pas de gagnant. La partie est terminée.\n");
-            afficherGrille(morpion);
-            // Fin de la partie, quitter la boucle
-            condition = 0;
-        } 
-        else {
-            printf("Message inconnu reçu : %s\n", action);
-        }
+    } 
+    else if (strcmp(action, "Owins") == 0) {
+        printf("Le serveur a joué à la case %d. Le serveur (O) a gagné !\n", caseServeur);
+        afficherGrille(morpion);
+    } 
+    else if (strcmp(action, "Oend") == 0) {
+        printf("Le serveur a joué à la case %d. Grille pleine, pas de gagnant.\n", caseServeur);
+        afficherGrille(morpion);
+    } 
+    else if (strcmp(action, "Xwins") == 0) {
+        printf("Félicitations ! Vous avez gagné !\n");
+        afficherGrille(morpion);
+    } 
+    else if (strcmp(action, "Xend") == 0) {
+        printf("Grille pleine, pas de gagnant. La partie est terminée.\n");
+        afficherGrille(morpion);
+    } 
+    else {
+        printf("Message inconnu reçu : %s\n", action);
     }
-    
-
 }
-
 
 int main(int argc, char *argv[]) {
     int descripteurSocket;
@@ -133,23 +116,40 @@ int main(int argc, char *argv[]) {
             break;
         }
 
-        messageRecu[nb] = '\0';
+        messageRecu[nb] = '\0';  // Assurer que le message est terminé
+        printf("Message reçu : %s\n", messageRecu);  // Afficher le message pour débogage
 
-        // Gestion des messages du serveur
-        char action[10];
+        // Gérer les messages du serveur
+        char action[10]; 
         int caseServeur;
+        
+        // Essayer de lire une action et une case
+        int scanResult = sscanf(messageRecu, "%s %d", action, &caseServeur);
 
-        sscanf(messageRecu, "%s %d", action, &caseServeur);
-
-        int x = (caseServeur - 1) / 3;
-        int y = (caseServeur - 1) % 3;
-
-        if (caseServeur >= 1 && caseServeur <= 9) {
+        if (scanResult == 2) {
+            // Cas où le message contient à la fois l'action et la case
+            printf("Action : %s, Case : %d\n", action, caseServeur);
+            int x = (caseServeur - 1) / 3;
+            int y = (caseServeur - 1) % 3;
             morpion->cases[x][y].symbole = 'O';
+        } else if (scanResult == 1) {
+            // Cas où il n'y a que le numéro de la case
+            sscanf(messageRecu, "%d", &caseServeur);
+            int x = (caseServeur - 1) / 3;
+            int y = (caseServeur - 1) % 3;
+            morpion->cases[x][y].symbole = 'O';
+        } else {
+            printf("Message mal formé ou inconnu : %s\n", messageRecu);
+        }        
+
+        // Traiter l'action reçue
+        traiterAction(action, caseServeur, morpion);
+
+          if (strcmp(action, "Owins") == 0 || strcmp(action, "Xwins") == 0 || strcmp(action, "Oend") ==0 || strcmp(action, "Oend") == 0)
+        {
+            exit(0);
         }
-
-        traiterAction(action,caseServeur,morpion);
-
+        
     }
 
     libererGrille(morpion); 
