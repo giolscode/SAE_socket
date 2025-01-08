@@ -53,14 +53,3 @@ void libererGrille(Grille *grille) {
     free(grille->cases);       // Libère le tableau de pointeurs
     free(grille);              // Libère la structure elle-même
 }
-
-
-// Exemple d'utilisation
-int main() {
-    Grille *grille = creerGrille(3, 3);
-
-    printf("Grille initiale :\n");
-    afficherGrille(grille);
-
-    return 0;
-}

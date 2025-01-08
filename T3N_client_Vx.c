@@ -17,7 +17,7 @@ int main(int argc, char *argv[]) {
 
     Grille *morpion; 
 
-    int choix;
+    int lgn, cln;
 
     char buffer[LG_MESSAGE]; // buffer stockant le message
     int nb; /* nb d’octets écrits et lus */
@@ -73,10 +73,23 @@ int main(int argc, char *argv[]) {
     morpion = creerGrille(3,3);
     while (1) {
         afficherGrille(morpion);
-        printf("Quelle case voulez vous choisir ? \n");
-        scanf("%d", &choix);
-        
-        printf(buffer, "%d", choix); 
+        printf("Quelle case voulez vous choisir ? (Ligne colonne, séparée par un espace)\n");
+        if (scanf("%d %d", &lgn, &cln) != 2) {
+        printf("Error: Il faut saisir la ligne et la colonne dans la grille séparé par un espace !\n");
+        continue;
+        }
+        if (lgn < 0 || lgn >= morpion->longueur || cln < 0 || cln >= morpion->largeur) {
+        printf("Error: Il faut choisir une coordonnée dans la grille !\n");
+        continue;
+        }
+        if (morpion->cases[lgn][cln].symbole != ' ') { // savoir si c'est vide ou pas 
+            printf("Error: Cette case est déjà occupé !\n");
+            continue;
+        }
+
+        morpion->cases[lgn][cln].symbole = 'X'; // Mettre X a la case voulu 
+
+        snprintf(buffer, LG_MESSAGE, "%d %d", lgn, cln);
         nb = write(descripteurSocket, buffer, strlen(buffer));
         if (nb <= 0) {
             perror("Erreur lors de l'envoi des données...");
@@ -90,16 +103,14 @@ int main(int argc, char *argv[]) {
         }
         buffer[nb] = '\0';
 
+        printf("Réponse du serveur : %s\n", buffer);
+
 
     }
 
     libererGrille(morpion); 
-    close(descripteurSocket);
 
 
     
-
-    
-
     return 0;
 }
