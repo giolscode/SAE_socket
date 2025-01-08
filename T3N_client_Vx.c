@@ -1,36 +1,30 @@
 #include <stdio.h>
-#include <stdlib.h> /* pour exit */
-#include <unistd.h> /* pour read, write, close, sleep */
+#include <stdlib.h> 
+#include <unistd.h> 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <string.h> /* pour memset */
-#include <netinet/in.h> /* pour struct sockaddr_in */
-#include <arpa/inet.h> /* pour htons et inet_aton */
+#include <string.h> 
+#include <netinet/in.h> 
+#include <arpa/inet.h> 
 #include "Grille.h"
 
 #define LG_MESSAGE 256
 
 int main(int argc, char *argv[]) {
     int descripteurSocket;
+    
     struct sockaddr_in sockaddrDistant;
     socklen_t longueurAdresse;
-
-    Grille *morpion; 
-
-    int choix;
-
-    char buffer[LG_MESSAGE]; // buffer stockant le message
-    int nb; /* nb d’octets écrits et lus */
+    Grille *morpion;
+    int lgn, cln;
+    char buffer[LG_MESSAGE]; 
+    int nb;
 
     char ip_dest[16];
     int port_dest;
 
-    // Pour pouvoir contacter le serveur, le client doit connaître son adresse IP et le port de communication
-    // Ces 2 informations sont passées sur la ligne de commande
-    // Si le serveur et le client tournent sur la même machine alors l'IP locale fonctionne : 127.0.0.1
-    // Le port d'écoute du serveur est 5000 dans cet exemple, donc en local utiliser la commande :
-    // ./client_base_tcp 127.0.0.1 5000
-    if (argc > 1) { // si il y a au moins 2 arguments passés en ligne de commande, récupération ip et port
+    // Récupérer l'IP et le port du serveur
+    if (argc > 1) {
         strncpy(ip_dest, argv[1], 16);
         sscanf(argv[2], "%d", &port_dest);
     } else {
@@ -38,68 +32,78 @@ int main(int argc, char *argv[]) {
         exit(-1);
     }
 
-    // Crée un socket de communication
+    // Créer le socket
     descripteurSocket = socket(AF_INET, SOCK_STREAM, 0);
-    // Teste la valeur renvoyée par l’appel système socket()
     if (descripteurSocket < 0) {
-        perror("Erreur en création de la socket..."); // Affiche le message d’erreur
-        exit(-1); // On sort en indiquant un code erreur
+        perror("Erreur en création de la socket...");
+        exit(-1); 
     }
     printf("Socket créée! (%d)\n", descripteurSocket);
 
-    // Remplissage de sockaddrDistant (structure sockaddr_in identifiant la machine distante)
-    // Obtient la longueur en octets de la structure sockaddr_in
+    // Remplir sockaddrDistant
     longueurAdresse = sizeof(sockaddrDistant);
-    // Initialise à 0 la structure sockaddr_in
-    // memset sert à faire une copie d'un octet n fois à partir d'une adresse mémoire donnée
-    // ici l'octet 0 est recopié longueurAdresse fois à partir de l'adresse &sockaddrDistant
     memset(&sockaddrDistant, 0x00, longueurAdresse);
-    // Renseigne la structure sockaddr_in avec les informations du serveur distant
     sockaddrDistant.sin_family = AF_INET;
-    // On choisit le numéro de port d’écoute du serveur
     sockaddrDistant.sin_port = htons(port_dest);
-    // On choisit l’adresse IPv4 du serveur
     inet_aton(ip_dest, &sockaddrDistant.sin_addr);
 
-    // Débute la connexion vers le processus serveur distant
+    // Connexion au serveur
     if ((connect(descripteurSocket, (struct sockaddr *)&sockaddrDistant, longueurAdresse)) == -1) {
-        perror("Erreur de connection avec le serveur distant...");
+        perror("Erreur de connexion avec le serveur...");
         close(descripteurSocket);
-        exit(-2); // On sort en indiquant un code erreur
+        exit(-2);
     }
     printf("Connexion au serveur %s:%d réussie!\n", ip_dest, port_dest);
 
+    morpion = creerGrille(3, 3);
 
-    morpion = creerGrille(3,3);
     while (1) {
         afficherGrille(morpion);
-        printf("Quelle case voulez vous choisir ? \n");
-        scanf("%d", &choix);
-        
-        printf(buffer, "%d", choix); 
+        printf("Quelle case voulez-vous choisir ? (Ligne colonne, séparée par un espace)\n");
+
+        if (scanf("%d %d", &lgn, &cln) != 2) {
+            printf("Erreur : Il faut saisir la ligne et la colonne dans la grille séparées par un espace !\n");
+            continue;
+        }
+
+        int ligne = lgn - 1;
+        int colonne = cln - 1;
+
+        if (morpion->cases[ligne][colonne].symbole != ' ') {
+            printf("Erreur : Cette case est déjà occupée !\n");
+            continue;
+        }
+
+        morpion->cases[ligne][colonne].symbole = 'X';
+
+        // Envoyer le coup au serveur
+        snprintf(buffer, LG_MESSAGE, "%d %d", ligne, colonne);
         nb = write(descripteurSocket, buffer, strlen(buffer));
         if (nb <= 0) {
             perror("Erreur lors de l'envoi des données...");
             break;
         }
 
+        // Attendre le coup du serveur
         nb = read(descripteurSocket, buffer, LG_MESSAGE);
         if (nb <= 0) {
             perror("Erreur lors de la réception des données...");
             break;
         }
-        buffer[nb] = '\0';
 
+        buffer[nb] = '\0';
         
+        // Le serveur a joué
+        int caseServeur;
+        if (sscanf(buffer, "%d", &caseServeur) == 1) {
+            int x = (caseServeur - 1) / 3;
+            int y = (caseServeur - 1) % 3;
+            morpion->cases[x][y].symbole = 'O';
+            printf("Le serveur a joué à la case : %d (coordonnées : [%d][%d])\n", caseServeur, x, y);
+        }
     }
 
     libererGrille(morpion); 
     close(descripteurSocket);
-
-
-    
-
-    
-
     return 0;
 }

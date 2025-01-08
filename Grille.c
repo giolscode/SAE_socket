@@ -11,26 +11,24 @@ typedef struct {
     Case **cases; 
 } Grille;
 
-// Fonction pour créer une grille avec numérotation des cases
+// Fonction pour créer une grille vide (sans numérotation)
 Grille* creerGrille(int longueur, int largeur) {
     Grille *grille = (Grille*)malloc(sizeof(Grille));
     grille->longueur = longueur;
     grille->largeur = largeur;
 
     grille->cases = (Case**)malloc(longueur * sizeof(Case*));
-    int numero = 1; // Compteur pour numéroter les cases
     for (int i = 0; i < longueur; i++) {
         grille->cases[i] = (Case*)malloc(largeur * sizeof(Case));
         for (int j = 0; j < largeur; j++) {
-            grille->cases[i][j].symbole = '0' + numero; // Convertit le numéro en caractère
-            numero++;
+            grille->cases[i][j].symbole = ' '; // Laisser la case vide
         }
     }
 
     return grille;
 }
 
-// Fonction pour afficher la grille avec numérotation
+// Fonction pour afficher la grille
 void afficherGrille(Grille *grille) {
     for (int i = 0; i < grille->longueur; i++) {
         for (int j = 0; j < grille->largeur; j++) {
