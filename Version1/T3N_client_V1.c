@@ -13,36 +13,42 @@
 
 void traiterAction(const char *action, int caseServeur, Grille *morpion) {
 
-    if (strcmp(action, "continue") == 0) {
+    int condition = 1 ; 
+    while (condition != 0)
+    {
+        if (strcmp(action, "continue") == 0) {
         printf("Le serveur a joué à la case %d. La partie continue.\n", caseServeur);
-    } 
-    else if (strcmp(action, "Owins") == 0) {
-        printf("Le serveur a joué à la case %d. Le serveur (O) a gagné !\n", caseServeur);
-        afficherGrille(morpion);
-        // Fin de la partie, quitter la boucle
-        return 0;
-    } 
-    else if (strcmp(action, "Oend") == 0) {
-        printf("Le serveur a joué à la case %d. Grille pleine, pas de gagnant.\n", caseServeur);
-        afficherGrille(morpion);
-        // Fin de la partie, quitter la boucle
-        return 0;
-    } 
-    else if (strcmp(action, "Xwins") == 0) {
-        printf("Félicitations ! Vous avez gagné !\n");
-        afficherGrille(morpion);
-        // Fin de la partie, quitter la boucle
-        return 0;
-    } 
-    else if (strcmp(action, "Xend") == 0) {
-        printf("Grille pleine, pas de gagnant. La partie est terminée.\n");
-        afficherGrille(morpion);
-        // Fin de la partie, quitter la boucle
-        return 0;
-    } 
-    else {
-        printf("Message inconnu reçu : %s\n", action);
+        } 
+        else if (strcmp(action, "Owins") == 0) {
+            printf("Le serveur a joué à la case %d. Le serveur (O) a gagné !\n", caseServeur);
+            afficherGrille(morpion);
+            // Fin de la partie, quitter la boucle
+            condition = 0;
+        } 
+        else if (strcmp(action, "Oend") == 0) {
+            printf("Le serveur a joué à la case %d. Grille pleine, pas de gagnant.\n", caseServeur);
+            afficherGrille(morpion);
+            // Fin de la partie, quitter la boucle
+            condition =  0;
+        } 
+        else if (strcmp(action, "Xwins") == 0) {
+            printf("Félicitations ! Vous avez gagné !\n");
+            afficherGrille(morpion);
+            // Fin de la partie, quitter la boucle
+            condition = 0;
+        } 
+        else if (strcmp(action, "Xend") == 0) {
+            printf("Grille pleine, pas de gagnant. La partie est terminée.\n");
+            afficherGrille(morpion);
+            // Fin de la partie, quitter la boucle
+            condition = 0;
+        } 
+        else {
+            printf("Message inconnu reçu : %s\n", action);
+        }
     }
+    
+
 }
 
 
