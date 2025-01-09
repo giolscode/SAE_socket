@@ -53,7 +53,3 @@ sudo apt install make
 -> Donner des coordonnées avec la même syntaxe sur le second terminal client pour pouvoir jouer   
 -> La partie se termine si l'un des deux joueurs gagne ou si il y a égalité  
 
-### Writers and Roles
-
-- **Demol Alexis**: Editor, Proofreader  
-- **Debruyne Lucas**: Writer  
