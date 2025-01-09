@@ -98,11 +98,11 @@ int main(int argc, char const *argv[])
     }
     printf("Socket créée avec succès ! (%d)\n", socketEcoute);
 
-    // Remplissage de sockaddrDistant (structure sockaddr_in identifiant le point d'écoute local)
+    // Remplissage de pointDe RencontreLocal (structure sockaddr_in identifiant le point d'écoute local)
     longueurAdresse = sizeof(pointDeRencontreLocal);
     memset(&pointDeRencontreLocal, 0x00, longueurAdresse); pointDeRencontreLocal.sin_family = PF_INET;
     pointDeRencontreLocal.sin_addr.s_addr = htonl(INADDR_ANY); // attaché à toutes les interfaces locales disponibles
-    pointDeRencontreLocal.sin_port = htons(PORT); // port 6000
+    pointDeRencontreLocal.sin_port = htons(6000); // port 6000
 
     // On demande l’attachement local de la socket
     if ((bind(socketEcoute, (struct sockaddr *)&pointDeRencontreLocal, longueurAdresse)) < 0) {
@@ -193,7 +193,7 @@ int main(int argc, char const *argv[])
 
         // Placer le symbole du serveur
         morpion->cases[x][y].symbole = 'O';
-        printf("Serveur joue à la case : %d (coordonnées: [%d][%d])\n", caseServeur, x, y);
+        printf("Serveur joue à la case : %d \n", caseServeur, x, y);
 
         // Envoyer la case choisie au client
         char caseEnvoyee[3];
