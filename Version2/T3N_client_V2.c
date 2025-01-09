@@ -59,7 +59,7 @@ int main(int argc, char *argv[]) {
     int caseServeur;
 
     // lire une action et une case 
-    int scanResult
+    int scanResult;
 
     // coordonnées 
     int x, y;
@@ -126,6 +126,7 @@ int main(int argc, char *argv[]) {
     morpion = creerGrille(3, 3);
 
     while (1) {
+        // On affiche la grille et on demande au client la case choisi 
         afficherGrille(morpion);
         printf("Quelle case voulez-vous choisir ? (Ligne colonne, séparées par un espace)\n");
 
