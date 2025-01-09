@@ -1,12 +1,12 @@
 #include <stdio.h>
-#include <stdlib.h> /* pour exit */
-#include <unistd.h> /* pour read, write, close, sleep */
+#include <stdlib.h> 
+#include <unistd.h> 
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <string.h> /* pour memset */
-#include <netinet/in.h> /* pour struct sockaddr_in */
-#include <arpa/inet.h> /* pour htons et inet_aton */
-#include <stdbool.h>
+#include <string.h> 
+#include <netinet/in.h> 
+#include <arpa/inet.h>
+#include <stdbool.h> 
 #include "Grille.h"
 
 #define PORT 6000 
@@ -73,22 +73,19 @@ bool grillePleine(Grille *grille) {
     return true;
 }
 
-int main(int argc, char const *argv[])
-{
-    int socketEcoute;
+int main(int argc, char const *argv[]) {
+    int socketEcoute, socketDialogue, clientX, clientO, socketEnJeu;
+    struct sockaddr_in sockaddrDistant;
+    socklen_t longueurAdresse;
     Grille *morpion;
     int x, y, numCase;
-    int longueur = 3;
-    int largeur = 3;
-
-    struct sockaddr_in pointDeRencontreLocal;
-    socklen_t longueurAdresse;
-
-    int socketDialogue;
-    struct sockaddr_in pointDeRencontreDistant;
-    char messageRecu[LG_MESSAGE]; /* le message de la couche Application ! */
-    int ecrits, lus; /* nb d’octets ecrits et lus */
-    int retour;
+    int longueur = 3;  // Longueur quadrillage
+    int largeur = 3;   // Largeur quadrillage
+    char messageRecu[LG_MESSAGE];
+    char messageEnvoyee[LG_MESSAGE];
+    char symboleEnJeu;
+    int lus;
+    int clientEnJeu = 1;  // Joueur X commence en premier
 
     // Création du socket
     socketEcoute = socket(AF_INET, SOCK_STREAM, 0); 
@@ -99,13 +96,14 @@ int main(int argc, char const *argv[])
     printf("Socket créée avec succès ! (%d)\n", socketEcoute);
 
     // Remplissage de sockaddrDistant (structure sockaddr_in identifiant le point d'écoute local)
-    longueurAdresse = sizeof(pointDeRencontreLocal);
-    memset(&pointDeRencontreLocal, 0x00, longueurAdresse); pointDeRencontreLocal.sin_family = PF_INET;
-    pointDeRencontreLocal.sin_addr.s_addr = htonl(INADDR_ANY); // attaché à toutes les interfaces locales disponibles
-    pointDeRencontreLocal.sin_port = htons(PORT); // port 6000
+    longueurAdresse = sizeof(sockaddrDistant);
+    memset(&sockaddrDistant, 0x00, longueurAdresse); 
+    sockaddrDistant.sin_family = PF_INET;
+    sockaddrDistant.sin_addr.s_addr = htonl(INADDR_ANY); // attaché à toutes les interfaces locales disponibles
+    sockaddrDistant.sin_port = htons(PORT); // port 6000
 
     // On demande l’attachement local de la socket
-    if ((bind(socketEcoute, (struct sockaddr *)&pointDeRencontreLocal, longueurAdresse)) < 0) {
+    if ((bind(socketEcoute, (struct sockaddr *)&sockaddrDistant, longueurAdresse)) < 0) {
         perror("bind");
         exit(-2); 
     }
@@ -122,50 +120,67 @@ int main(int argc, char const *argv[])
     morpion = creerGrille(longueur, largeur);
     afficherGrille(morpion);
 
-    // attente de connexion 
-    printf("Attente d’une demande de connexion...\n\n");
-    socketDialogue = accept(socketEcoute, (struct sockaddr *)&pointDeRencontreDistant, &longueurAdresse);
+    // Attente de connexion des deux clients 
+    printf("Attente de la connexion du joueur X...\n\n");
+
+    clientX = accept(socketEcoute, (struct sockaddr *)&sockaddrDistant, &longueurAdresse);
     if (socketDialogue < 0) {
         perror("accept");
         close(socketDialogue);
         close(socketEcoute);
         exit(-4);
     }
-    printf("Connexion acceptée. Le jeu commence !\n");
+    printf("Client X connecté, maintenant Client O... !\n");
+
+    clientO = accept(socketEcoute, (struct sockaddr *)&sockaddrDistant, &longueurAdresse);
+    if (socketDialogue < 0) {
+        perror("accept");
+        close(socketDialogue);
+        close(socketEcoute);
+        exit(-5);
+    }
 
     // Réinitialisation du message pour chaque tour
     while (1) {
         memset(messageRecu, 0, LG_MESSAGE); // Réinitialisation du message
 
+        // Pour savoir le tour de quel joueur
+        if (clientEnJeu == 1){
+            socketEnJeu = clientX;
+            symboleEnJeu = 'X';
+        } else {
+            socketEnJeu = clientO;
+            symboleEnJeu = 'O';
+        }
+
+        // Envoi du message au client concerné
+        send(socketEnJeu,"C'est votre tour.", strlen("C'est votre tour.") + 1, 0);
+
         // On réceptionne les données du client (cf. protocole)
-        lus = recv(socketDialogue, messageRecu, LG_MESSAGE, 0); // ici appel bloquant
+        lus = recv(socketDialogue, messageRecu, LG_MESSAGE, 0); // appel bloquant
         switch (lus) {
-            case -1: /* une erreur */
+            case -1:
                 perror("read");
                 close(socketDialogue);
-                exit(-5);
-            case 0:  /* la socket est fermée */
+                exit(-6);
+            case 0:
                 fprintf(stderr, "La socket a été fermée par le client !\n\n");
                 close(socketDialogue);
                 return 0;
-            default:  /* réception de n octets */
+            default:
                 messageRecu[lus] = '\0';  // Terminer le message par un caractère nul
                 printf("Message reçu : '%s' (%d octets)\n\n", messageRecu, lus);
         }
 
         // Interprétation des coordonnées (x et y)
-        if (sscanf(messageRecu, "%d %d", &x, &y) != 2) {
-            printf("Erreur : coordonnées invalides reçues : %s\n", messageRecu);
-            continue;
-        }
+        sscanf(messageRecu, "%d %d", &x, &y);
 
         // Vérifier que les coordonnées sont dans les limites de la grille et que la case est vide
-        if (x >= 0 && x < longueur && y >= 0 && y < largeur && morpion->cases[x][y].symbole == ' ') {
-            morpion->cases[x][y].symbole = 'X'; // Client joue
-        } else {
-            printf("Case invalide ou déjà occupée : (%d, %d).\n", x, y);
+        if (x < 0 || x >= longueur || y < 0 || y >= largeur || morpion->cases[x][y].symbole != ' ') {
+            send(socketEnJeu, "Coup invalide", strlen("Coup invalide") + 1, 0);
             continue;
         }
+        morpion->cases[x][y].symbole = symboleEnJeu;
 
         printf("Grille après le coup du client :\n");
         afficherGrille(morpion);
@@ -183,47 +198,34 @@ int main(int argc, char const *argv[])
             break;
         }
 
-        // Tour du serveur de jouer
-        int caseServeur;
-        do {
-            caseServeur = rand() % (longueur * largeur) + 1; // Entre 1 et 9
-            x = (caseServeur - 1) / largeur; // Ligne
-            y = (caseServeur - 1) % largeur; // Colonne
-        } while (morpion->cases[x][y].symbole != ' ');
-
-        // Placer le symbole du serveur
-        morpion->cases[x][y].symbole = 'O';
-        printf("Serveur joue à la case : %d (coordonnées: [%d][%d])\n", caseServeur, x, y);
-
-        // Envoyer la case choisie au client
-        char caseEnvoyee[3];
-        sprintf(caseEnvoyee, "%d", caseServeur);
-        if (send(socketDialogue, caseEnvoyee, strlen(caseEnvoyee) + 1, 0) <= 0) {
-            perror("Erreur lors de l'envoi des données...");
-            break;
-        }
-
-        // Vérifications de victoire ou de fin de jeu pour le serveur
-        if (verifierVictoire(morpion, 'O')) {
-            send(socketDialogue, "Owins", strlen("Owins") + 1, 0);
-            printf("Le joueur O a gagné !\n");
+        // Vérification des conditions de victoire ou de match nul
+        if (verifierVictoire(morpion, symboleEnJeu)) {
+            sprintf(messageEnvoyee, "%c gagne !", symboleEnJeu);
+            send(clientX, messageEnvoyee, strlen(messageEnvoyee) + 1, 0);
+            send(clientO, messageEnvoyee, strlen(messageEnvoyee) + 1, 0);
             break;
         }
 
         if (grillePleine(morpion)) {
-            send(socketDialogue, "Oend", strlen("Oend") + 1, 0);
-            printf("La grille est pleine. Fin de la partie.\n");
+            send(clientX, "Match nul", strlen("Match nul") + 1, 0);
+            send(clientO, "Match nul", strlen("Match nul") + 1, 0);
             break;
         }
 
-        // Continuer le jeu si aucune condition de fin n'est atteinte
-        send(socketDialogue, "continue", strlen("continue") + 1, 0);
+        // Changer de joueur
+        if (clientEnJeu == 1) {
+            clientEnJeu = 2;
+        } else {
+            clientEnJeu = 1;
+        }
     }
 
-        // Afficher la grille après le choix du serveur
-        printf("Grille après le coup du serveur :\n");
-        afficherGrille(morpion);
+    // Afficher la grille après le choix du serveur
+    printf("Grille après le coup du serveur :\n");
+    afficherGrille(morpion);
 
+    close(clientX);
+    close(clientO);
     close(socketEcoute);
     return 0;
 }

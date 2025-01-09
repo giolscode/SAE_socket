@@ -15,19 +15,19 @@ void traiterAction(const char *action, int caseServeur, Grille *morpion) {
         printf("Le serveur a joué à la case %d. La partie continue.\n", caseServeur);
     } 
     else if (strcmp(action, "Owins") == 0) {
-        printf("Le serveur a joué à la case %d. Le serveur (O) a gagné !\n", caseServeur);
+        printf("Le joueur O a gagné !\n");
         afficherGrille(morpion);
     } 
     else if (strcmp(action, "Oend") == 0) {
-        printf("Le serveur a joué à la case %d. Grille pleine, pas de gagnant.\n", caseServeur);
+        printf("Grille pleine, pas de gagnant.\n");
         afficherGrille(morpion);
     } 
     else if (strcmp(action, "Xwins") == 0) {
-        printf("Félicitations ! Vous avez gagné !\n");
+        printf("Le joueur X a gagné !\n");
         afficherGrille(morpion);
     } 
     else if (strcmp(action, "Xend") == 0) {
-        printf("Grille pleine, pas de gagnant. La partie est terminée.\n");
+        printf("Grille pleine, pas de gagnant.\n");
         afficherGrille(morpion);
     } 
     else {
@@ -46,9 +46,10 @@ int main(int argc, char *argv[]) {
     int nb;
     char ip_dest[16];
     int port_dest;
+    char roleJoueur;
 
-    // Récupérer l'IP et le port du serveur
-    if (argc > 1) {
+    // Vérification des arguments pour récupérer l'IP et le port
+    if (argc > 2) {
         strncpy(ip_dest, argv[1], 16);
         sscanf(argv[2], "%d", &port_dest);
     } else {
@@ -79,15 +80,57 @@ int main(int argc, char *argv[]) {
     }
     printf("Connexion au serveur %s:%d réussie!\n", ip_dest, port_dest);
 
+    // Recevoir le rôle du joueur
+    nb = read(descripteurSocket, &roleJoueur, sizeof(char));
+    if (nb <= 0) {
+        perror("Erreur lors de la réception du rôle...");
+        close(descripteurSocket);
+        exit(-3);
+    }
+    printf("Votre rôle : %c\n", roleJoueur);
+
     // Initialiser la grille
     morpion = creerGrille(3, 3);
 
     while (1) {
+        // Attendre un message du serveur pour savoir si c'est au tour du client de jouer
+        nb = read(descripteurSocket, messageRecu, LG_MESSAGE);
+        if (nb <= 0) {
+            perror("Erreur lors de la réception des données...");
+            break;
+        }
+
+        messageRecu[nb] = '\0';  // Assurer que le message est terminé
+        printf("Message reçu : %s\n", messageRecu);
+
+        // Si le serveur envoie un message pour une action, effectuer la mise à jour de la grille
+        char action[10];
+        int caseServeur = -1;
+        int scanResult = sscanf(messageRecu, "%s %d", action, &caseServeur);
+
+        if (scanResult >= 1) {
+            if (caseServeur > 0) {
+                int x = (caseServeur - 1) / 3;
+                int y = (caseServeur - 1) % 3;
+                morpion->cases[x][y].symbole = (roleJoueur == 'X') ? 'O' : 'X';
+            }
+            
+            traiterAction(action, caseServeur, morpion);
+
+            if (strcmp(action, "Owins") == 0 || strcmp(action, "Xwins") == 0 || strcmp(action, "Oend") == 0 || strcmp(action, "Xend") == 0) {
+                printf("Fin de la partie. Merci d'avoir joué !\n");
+                break;
+            }
+        } else {
+            printf("Message inconnu ou mal formé : %s\n", messageRecu);
+        }
+
+        // Jouer un coup
         afficherGrille(morpion);
         printf("Quelle case voulez-vous choisir ? (Ligne colonne, séparées par un espace)\n");
 
         if (scanf("%d %d", &lgn, &cln) != 2) {
-            printf("Erreur : Il faut saisir la ligne et la colonne dans la grille séparées par un espace !\n");
+            printf("Erreur : Il faut saisir la ligne et la colonne séparées par un espace !\n");
             continue;
         }
 
@@ -99,60 +142,17 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
-        morpion->cases[ligne][colonne].symbole = 'X';
+        morpion->cases[ligne][colonne].symbole = roleJoueur;
 
-        // Envoyer le coup au serveur
         snprintf(messageRecu, LG_MESSAGE, "%d %d", ligne, colonne);
         nb = write(descripteurSocket, messageRecu, strlen(messageRecu));
         if (nb <= 0) {
             perror("Erreur lors de l'envoi des données...");
             break;
         }
-
-        // Attendre la réponse du serveur
-        nb = read(descripteurSocket, messageRecu, LG_MESSAGE);
-        if (nb <= 0) {
-            perror("Erreur lors de la réception des données...");
-            break;
-        }
-
-        messageRecu[nb] = '\0';  // Assurer que le message est terminé
-        printf("Message reçu : %s\n", messageRecu);  // Afficher le message pour débogage
-
-        // Gérer les messages du serveur
-        char action[10]; 
-        int caseServeur;
-        
-        // Essayer de lire une action et une case
-        int scanResult = sscanf(messageRecu, "%s %d", action, &caseServeur);
-
-        if (scanResult == 2) {
-            // Cas où le message contient à la fois l'action et la case
-            printf("Action : %s, Case : %d\n", action, caseServeur);
-            int x = (caseServeur - 1) / 3;
-            int y = (caseServeur - 1) % 3;
-            morpion->cases[x][y].symbole = 'O';
-        } else if (scanResult == 1) {
-            // Cas où il n'y a que le numéro de la case
-            sscanf(messageRecu, "%d", &caseServeur);
-            int x = (caseServeur - 1) / 3;
-            int y = (caseServeur - 1) % 3;
-            morpion->cases[x][y].symbole = 'O';
-        } else {
-            printf("Message mal formé ou inconnu : %s\n", messageRecu);
-        }        
-
-        // Traiter l'action reçue
-        traiterAction(action, caseServeur, morpion);
-
-          if (strcmp(action, "Owins") == 0 || strcmp(action, "Xwins") == 0 || strcmp(action, "Oend") ==0 || strcmp(action, "Oend") == 0)
-        {
-            exit(0);
-        }
-        
     }
 
-    libererGrille(morpion); 
+    libererGrille(morpion);
     close(descripteurSocket);
     return 0;
 }
