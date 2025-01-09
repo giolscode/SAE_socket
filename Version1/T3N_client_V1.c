@@ -46,8 +46,9 @@ int main(int argc, char *argv[]) {
 
     Grille *morpion;
     // les lignes et les colonnes du morpions 
-    int lgn, cln, ligne = lgn - 1, colonne = cln - 1;
+    int lgn, cln;
 
+    char buffer[LG_MESSAGE];
     char messageRecu[LG_MESSAGE]; 
     int nb; /* nb d’octets écrits et lus */
 
@@ -108,24 +109,24 @@ int main(int argc, char *argv[]) {
     }
     printf("Connexion au serveur %s:%d réussie!\n", ip_dest, port_dest);
 
-    // Envoi du message
-	//switch(nb = write(descripteurSocket, buffer, strlen(buffer))){
-	switch(nb = send(descripteurSocket, buffer, strlen(buffer)+1,0)){
-		case -1 : /* une erreur ! */
-     			perror("Erreur en écriture...");
-		     	close(descripteurSocket);
-		     	exit(-3);
-		case 0 : /* le socket est fermée */
-			fprintf(stderr, "Le socket a été fermée par le serveur !\n\n");
-			return 0;
-		default: /* envoi de n octets */
-			printf("Message %s envoyé! (%d octets)\n\n", buffer, nb);
-	}
-
     // On initialise notre grille  
     morpion = creerGrille(3, 3);
 
     while (1) {
+        // Envoi du message
+        //switch(nb = write(descripteurSocket, buffer, strlen(buffer))){
+        switch(nb = send(descripteurSocket, buffer, strlen(buffer)+1,0)){
+            case -1 : /* une erreur ! */
+                    perror("Erreur en écriture...");
+                    close(descripteurSocket);
+                    exit(-3);
+            case 0 : /* le socket est fermée */
+                fprintf(stderr, "Le socket a été fermée par le serveur !\n\n");
+                return 0;
+            default: /* envoi de n octets */
+                printf("Message %s envoyé! (%d octets)\n\n", buffer, nb);
+        }
+
         // On affiche la grille et on demande au client la case choisi 
         afficherGrille(morpion);
         printf("Quelle case voulez-vous choisir ? (Ligne colonne, séparées par un espace)\n");
@@ -135,6 +136,7 @@ int main(int argc, char *argv[]) {
             continue;
         }
 
+        int ligne = lgn - 1, colonne = cln - 1;
         if (ligne < 0 || ligne >= 3 || colonne < 0 || colonne >= 3 || morpion->cases[ligne][colonne].symbole != ' ') {
             printf("Erreur : Case invalide ou déjà occupée !\n");
             continue;
@@ -181,10 +183,14 @@ int main(int argc, char *argv[]) {
         // On traite l'action reçue
         traiterAction(action, caseServeur, morpion);
 
-          if (strcmp(action, "Owins") == 0 || strcmp(action, "Xwins") == 0 || strcmp(action, "Oend") ==0 || strcmp(action, "Oend") == 0)
-        {
+        if (strcmp(action, "Owins") == 0 || strcmp(action, "Xwins") == 0 || strcmp(action, "Oend") == 0) {
+            // On libére la mémoire de la grille 
+            libererGrille(morpion);
+            // On ferme la ressource avant de quitter
+            close(descripteurSocket);
             exit(0);
         }
+
         
     }
 
