@@ -46,6 +46,31 @@ void afficherGrille(Grille *grille) {
     }
 }
 
+// Fonction pour envoyer la grille au joueur actif
+void envoyerGrille(int socketActuel, Grille *grille) {
+    // Créer une chaîne pour la représentation de la grille
+    for (int i = 0; i < grille->longueur; i++) {
+        for (int j = 0; j < grille->largeur; j++) {
+            // Afficher chaque symbole de la grille
+            printf(" %c ", grille->cases[i][j].symbole);
+            if (j < grille->largeur - 1) {
+                printf("|"); // Séparateur de colonnes
+            }
+        }
+        printf("\n");
+        if (i < grille->longueur - 1) {
+            // Séparateur de lignes
+            for (int j = 0; j < grille->largeur; j++) {
+                printf("---");
+                if (j < grille->largeur - 1) {
+                    printf("+");
+                }
+            }
+            printf("\n");
+        }
+    }
+}
+
 // Fonction pour libérer la mémoire allouée pour la grille
 void libererGrille(Grille *grille) {
     for (int i = 0; i < grille->longueur; i++) {

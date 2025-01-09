@@ -117,7 +117,7 @@ int main(int argc, char *argv[]) {
         }
 
         messageRecu[nb] = '\0';  // Assurer que le message est terminé
-        printf("Message reçu : %s\n", messageRecu);  // Afficher le message pour débogage
+        printf("Message reçu : '%s', Taille reçue : %d\n", messageRecu, nb);  // Afficher le message pour débogage
 
         // Gérer les messages du serveur
         char action[10]; 
@@ -147,7 +147,7 @@ int main(int argc, char *argv[]) {
 
           if (strcmp(action, "Owins") == 0 || strcmp(action, "Xwins") == 0 || strcmp(action, "Oend") ==0 || strcmp(action, "Oend") == 0)
         {
-            exit(0);
+            break;
         }
         
     }

@@ -22,4 +22,6 @@ void afficherGrille(Grille *grille);
 
 void libererGrille(Grille *grille);
 
+void envoyerGrille(int socketActuel, Grille *grille);
+
 #endif 
