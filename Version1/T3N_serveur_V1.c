@@ -193,7 +193,7 @@ int main(int argc, char const *argv[])
 
         // Placer le symbole du serveur
         morpion->cases[x][y].symbole = 'O';
-        printf("Serveur joue à la case : %d (coordonnées: [%d][%d])\n", caseServeur, x, y);
+        printf("Serveur joue à la case : %d \n", caseServeur);
 
         // Envoyer la case choisie au client
         char caseEnvoyee[3];

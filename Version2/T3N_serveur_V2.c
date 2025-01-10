@@ -78,11 +78,13 @@ int main(int argc, char const *argv[]) {
     int socketEcoute, clientX, clientO;
     struct sockaddr_in sockaddrDistant;
     socklen_t longueurAdresse;
+
     Grille *morpion;
     int x, y;
     int longueur = 3;  // Longueur du quadrillage
     int largeur = 3;   // Largeur du quadrillage
-    char messageRecu[LG_MESSAGE], messageEnvoye[LG_MESSAGE];
+    char messageRecuX[LG_MESSAGE], messageRecuO[LG_MESSAGE];
+    char messageEnvoyeX[LG_MESSAGE], messageEnvoyeO[LG_MESSAGE];
     char symboleEnJeu;
     int clientEnJeu = 1; // 1 pour X, 2 pour O
 
@@ -142,47 +144,89 @@ int main(int argc, char const *argv[]) {
         symboleEnJeu = (clientEnJeu == 1) ? 'X' : 'O';
 
         // Envoi du message au joueur actuel
-        sprintf(messageEnvoye, "C'est votre tour (%c). Entrez un numéro de case : ", symboleEnJeu);
-        send(socketEnJeu, messageEnvoye, strlen(messageEnvoye) + 1, 0);
+        if (clientEnJeu == 1) {
+            sprintf(messageEnvoyeX, "C'est votre tour (%c). Entrez un numéro de case : ", symboleEnJeu);
+            if (send(clientX, messageEnvoyeX, strlen(messageEnvoyeX) + 1, 0) <= 0) {
+                perror("Erreur lors de l'envoi à client X");
+                break;
+            }
+        } else {
+            sprintf(messageEnvoyeO, "C'est votre tour (%c). Entrez un numéro de case : ", symboleEnJeu);
+            if (send(clientO, messageEnvoyeO, strlen(messageEnvoyeO) + 1, 0) <= 0) {
+                perror("Erreur lors de l'envoi à client O");
+                break;
+            }
+        }
 
-        // Réception des coordonnées
-        memset(messageRecu, 0, LG_MESSAGE);
-        int lus = recv(socketEnJeu, messageRecu, LG_MESSAGE, 0);
-        if (lus <= 0) {
-            printf("Client %c déconnecté.\n", symboleEnJeu);
+        // Envoi des infos de jeu
+        sprintf(messageEnvoyeX, "L'adversaire a joué sur la case %d.", x * largeur + y);
+        sprintf(messageEnvoyeO, "L'adversaire a joué sur la case %d.", x * largeur + y);
+        if (send(clientX, messageEnvoyeX, strlen(messageEnvoyeX) + 1, 0) <= 0) {
+            perror("Erreur lors de l'envoi des infos à client X");
+            break;
+        }
+        if (send(clientO, messageEnvoyeO, strlen(messageEnvoyeO) + 1, 0) <= 0) {
+            perror("Erreur lors de l'envoi des infos à client O");
             break;
         }
 
-        int caseNum = messageRecu[0] - '0';
-        x = caseNum / largeur;
-        y = caseNum % largeur;
+        // Réception des coordonnées
+        if (clientEnJeu == 1) {
+            memset(messageRecuX, 0, LG_MESSAGE);
+            int lus = recv(clientX, messageRecuX, LG_MESSAGE, 0);
+            // if (lus <= 0) {
+            //     printf("Client X déconnecté.\n");
+            //     break;
+            // }
+            int caseNum = messageRecuX[0] - '0';
+            x = caseNum / largeur;
+            y = caseNum % largeur;
+        } 
+        else {
+            memset(messageRecuO, 0, LG_MESSAGE);
+            int lus = recv(clientO, messageRecuO, LG_MESSAGE, 0);
+            // if (lus <= 0) {
+            //     printf("Client O déconnecté.\n");
+            //     break;
+            // }
+            int caseNum = messageRecuO[0] - '0';
+            x = caseNum / largeur;
+            y = caseNum % largeur;
+        }
 
         // Vérification et application du coup
         if (x < 0 || x >= longueur || y < 0 || y >= largeur || morpion->cases[x][y].symbole != ' ') {
-            send(socketEnJeu, "Coup invalide.", strlen("Coup invalide.") + 1, 0);
+            if (clientEnJeu == 1) {
+                send(clientX, "Coup invalide.", strlen("Coup invalide.") + 1, 0);
+            } else {
+                send(clientO, "Coup invalide.", strlen("Coup invalide.") + 1, 0);
+            }
             continue;
         }
         morpion->cases[x][y].symbole = symboleEnJeu;
 
         // Vérification de la victoire ou de la fin du jeu
         if (verifierVictoire(morpion, symboleEnJeu)) {
-            sprintf(messageEnvoye, "%cwins", symboleEnJeu);
-            send(clientX, messageEnvoye, strlen(messageEnvoye) + 1, 0);
-            send(clientO, messageEnvoye, strlen(messageEnvoye) + 1, 0);
+            sprintf(messageEnvoyeX, "%cwins", symboleEnJeu);
+            sprintf(messageEnvoyeO, "%cwins", symboleEnJeu);
+            send(clientX, messageEnvoyeX, strlen(messageEnvoyeX) + 1, 0);
+            send(clientO, messageEnvoyeO, strlen(messageEnvoyeO) + 1, 0);
             break;
         }
 
         if (grillePleine(morpion)) {
-            sprintf(messageEnvoye, "%cend", symboleEnJeu);
-            send(clientX, messageEnvoye, strlen(messageEnvoye) + 1, 0);
-            send(clientO, messageEnvoye, strlen(messageEnvoye) + 1, 0);
+            sprintf(messageEnvoyeX, "Match nul.");
+            sprintf(messageEnvoyeO, "Match nul.");
+            send(clientX, messageEnvoyeX, strlen(messageEnvoyeX) + 1, 0);
+            send(clientO, messageEnvoyeO, strlen(messageEnvoyeO) + 1, 0);
             break;
         }
 
-        // Si le jeu continue
-        sprintf(messageEnvoye, "continue");
-        send(clientX, messageEnvoye, strlen(messageEnvoye) + 1, 0);
-        send(clientO, messageEnvoye, strlen(messageEnvoye) + 1, 0);
+        // Synchronisation et mise à jour de l'état
+        sprintf(messageEnvoyeX, "L'adversaire a joué sur la case %d.", x * largeur + y);
+        sprintf(messageEnvoyeO, "L'adversaire a joué sur la case %d.", x * largeur + y);
+        send(clientX, messageEnvoyeX, strlen(messageEnvoyeX) + 1, 0);
+        send(clientO, messageEnvoyeO, strlen(messageEnvoyeO) + 1, 0);
 
         // Passer au joueur suivant
         clientEnJeu = (clientEnJeu == 1) ? 2 : 1;
