@@ -47,8 +47,8 @@ sudo apt install make
 -> Faire un "make clean" sur l'un des terminal pour effacer toute trace de compilation passé  
 -> Faire un "make" afin de compiler l'ensemble des programmes sur un terminal seulement   
 -> Faire un "make serveur" pour lancer le serveur sur un terminal   
--> Faire un "make client" pour lancer un joueur sur un autre terminal (le client sera sur le port 6000 et non 5000)  
--> Faire de nouveau un "make client" pour lancer le second joueur sur le dernier terminal disponible (le client sera sur le port 6000 et non 5000)  
+-> Faire un "make clientX" pour lancer un joueur sur un autre terminal (le client sera sur le port 6000 et non 5000)  
+-> Faire un "make clientO" pour lancer le second joueur sur le dernier terminal disponible (le client sera sur le port 6000 et non 5000)  
 -> Donner des coordonnées tel que "1 2" sur l'un des terminal client où "1" représente la ligne et "2" la colonne afin de pouvoir jouer   
 -> Donner des coordonnées avec la même syntaxe sur le second terminal client pour pouvoir jouer   
 -> La partie se termine si l'un des deux joueurs gagne ou si il y a égalité  
