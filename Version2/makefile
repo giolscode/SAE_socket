@@ -9,8 +9,11 @@ serveur :
 	./T3N_serveur_V2
 
 # Lancer le client
-client : 
-	./T3N_client_V2 127.0.0.1 6000
+clientX : 
+	./T3N_client_V2 127.0.0.1 6000 X
+
+clientO : 
+	./T3N_client_V2 127.0.0.1 6000 O
 
 # Nettoyage des fichiers générés
 clean:
