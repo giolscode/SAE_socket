@@ -1,3 +1,12 @@
+/******************************************************************************
+ * 
+ * Nom du Projet   : Tic-Tac-Toe (Saé Socket)
+ * Auteurs         : DEMOL Alexis - LOSAT Giovanni - DEBRUYNE Lucas 
+ * Date de Création: 07/01/25
+ * Dernière Mise à Jour : 11/01/25
+ * 
+ *****************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h> /* pour exit */
 #include <unistd.h> /* pour read, write, close, sleep */
@@ -7,7 +16,7 @@
 #include <netinet/in.h> /* pour struct sockaddr_in */
 #include <arpa/inet.h> /* pour htons et inet_aton */
 #include <stdbool.h>
-#include "Grille.h"
+#include "Grille.h" /* Class Grille */
 
 #define PORT 6000 
 #define LG_MESSAGE 256

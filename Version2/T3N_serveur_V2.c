@@ -1,3 +1,12 @@
+/******************************************************************************
+ * 
+ * Nom du Projet   : Tic-Tac-Toe (Saé Socket)
+ * Auteurs         : DEMOL Alexis - LOSAT Giovanni - DEBRUYNE Lucas 
+ * Date de Création: 07/01/25
+ * Dernière Mise à Jour : 11/01/25
+ * 
+ *****************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

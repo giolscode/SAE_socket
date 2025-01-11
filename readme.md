@@ -1,4 +1,4 @@
-# Projet Sae Socket:
+# Projet Tic-Tac-Toe (Saé Socket):
 
 ## Membres:
 

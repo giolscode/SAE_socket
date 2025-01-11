@@ -1,3 +1,12 @@
+/******************************************************************************
+ * 
+ * Nom du Projet   : Tic-Tac-Toe (Saé Socket)
+ * Auteurs         : DEMOL Alexis - LOSAT Giovanni - DEBRUYNE Lucas 
+ * Date de Création: 07/01/25
+ * Dernière Mise à Jour : 11/01/25
+ * 
+ *****************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h> /* pour exit */
 #include <unistd.h> /* pour read, write, close, sleep */
@@ -6,7 +15,7 @@
 #include <string.h> /* pour memset */
 #include <netinet/in.h> /* pour struct sockaddr_in */
 #include <arpa/inet.h> /* pour htons et inet_aton */
-#include "Grille.h"
+#include "Grille.h" /* Class Grille */
 
 #define PORT 6000
 #define LG_MESSAGE 256
@@ -20,7 +29,9 @@ int main(int argc, char *argv[]) {
     char messageRecu[LG_MESSAGE]; // Client <-- Serveur
     char messageEnvoye[LG_MESSAGE]; // Client --> Serveur
     char symboleJoueur = argv[3][0]; // X ou O
+    // Création de notre grille 
     Grille *morpion = creerGrille(3, 3);
+    // les lignes et les colonnes du morpions 
     int cln, lgn;
 
     // si il n'y a pas 4 arguments lors de l'éxecution du code comme 
@@ -30,30 +41,51 @@ int main(int argc, char *argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    // Création du socket
+    // Crée un socket de communication
     descripteurSocket = socket(AF_INET, SOCK_STREAM, 0);
+    // Teste la valeur renvoyée par l’appel système socket()
     if (descripteurSocket < 0) {
-        perror("Erreur de création de la socket");
-        exit(EXIT_FAILURE);
+        perror("Erreur de création de la socket"); // Affiche le message d’erreur
+        exit(EXIT_FAILURE); // On sort en indiquant un code erreur
     }
     printf("Socket créée! (%d) \n", descripteurSocket);
 
-    //Remplissage du sockaddrDistant
+    // Remplissage de sockaddrDistant (structure sockaddr_in identifiant la machine distante)
+	// Obtient la longueur en octets de la structure sockaddr_in
     longueurAdresse = sizeof(sockaddrDistant);
+    // Initialise à 0 la structure sockaddr_in
+	// memset sert à faire une copie d'un octet n fois à partir d'une adresse mémoire donnée
+	// ici l'octet 0 est recopié longueurAdresse fois à partir de l'adresse &sockaddrDistant
     memset(&sockaddrDistant, 0, longueurAdresse);
+    // Renseigne la structure sockaddr_in avec les informations du serveur distant
     sockaddrDistant.sin_family = AF_INET;
+    // On choisit le numéro de port d’écoute du serveur
     sockaddrDistant.sin_addr.s_addr = htonl(INADDR_ANY);
+    // On choisit l’adresse IPv4 du serveur
     sockaddrDistant.sin_port = htons(PORT);
 
-    // Tentative de connexion du client au serveur
+    // Débute la connexion vers le processus serveur distant
     if (connect(descripteurSocket, (struct sockaddr *)&sockaddrDistant, sizeof(sockaddrDistant)) == -1) {
-        perror("Erreur de connexion");
+        perror("Erreur de connection avec le serveur distant...");
         close(descripteurSocket);
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); // On sort en indiquant un code erreur
     }
-    printf("Connexion établie avec le serveur.\n");
+    printf("Connexion au serveur %s:%d réussie!\n", ip_dest, port_dest);
 
     while (1) {
+        // Envoi du message
+        //switch(nb = write(descripteurSocket, buffer, strlen(buffer))){
+        switch(nb = send(descripteurSocket, buffer, strlen(buffer)+1,0)){
+            case -1 : /* une erreur ! */
+                    perror("Erreur en écriture...");
+                    close(descripteurSocket);
+                    exit(-3);
+            case 0 : /* le socket est fermée */
+                fprintf(stderr, "Le socket a été fermée par le serveur !\n\n");
+                return 0;
+            default: /* envoi de n octets */
+                printf("Message %s envoyé! (%d octets)\n\n", buffer, nb);
+        }
 
         //Réception du message du serveur
         memset(messageRecu, 0, LG_MESSAGE);
@@ -98,8 +130,9 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    //fermeture de la session
+    // On libére la mémoire de la grille 
     libererGrille(morpion);
+    // On ferme la ressource avant de quitter
     close(descripteurSocket);
     
     return 0;

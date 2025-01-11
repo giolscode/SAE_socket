@@ -1,3 +1,12 @@
+/******************************************************************************
+ * 
+ * Nom du Projet   : Tic-Tac-Toe (Saé Socket)
+ * Auteurs         : DEMOL Alexis - LOSAT Giovanni - DEBRUYNE Lucas 
+ * Date de Création: 07/01/25
+ * Dernière Mise à Jour : 11/01/25
+ * 
+ *****************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h> /* pour exit */
 #include <unistd.h> /* pour read, write, close, sleep */
@@ -68,8 +77,8 @@ int main(int argc, char *argv[]) {
     // Pour pouvoir contacter le serveur, le client doit connaître son adresse IP et le port de comunication
 	// Ces 2 informations sont passées sur la ligne de commande
 	// Si le serveur et le client tournent sur la même machine alors l'IP locale fonctionne : 127.0.0.1
-	// Le port d'écoute du serveur est 5000 dans cet exemple, donc en local utiliser la commande :
-	// ./client_base_tcp 127.0.0.1 5000
+	// Le port d'écoute du serveur est 6000 dans cet exemple, donc en local utiliser la commande :
+	// ./client_base_tcp 127.0.0.1 6000
     if (argc > 1) { // si il y a au moins 2 arguments passés en ligne de commande, récupération ip et port
         strncpy(ip_dest, argv[1], 16);
         sscanf(argv[2], "%d", &port_dest);
@@ -96,7 +105,7 @@ int main(int argc, char *argv[]) {
     memset(&sockaddrDistant, 0x00, longueurAdresse);
     // Renseigne la structure sockaddr_in avec les informations du serveur distant
     sockaddrDistant.sin_family = AF_INET;
-    // On choisit le numéro de port d’écoute du serveu
+    // On choisit le numéro de port d’écoute du serveur
     sockaddrDistant.sin_port = htons(port_dest);
     // On choisit l’adresse IPv4 du serveur
     inet_aton(ip_dest, &sockaddrDistant.sin_addr);
