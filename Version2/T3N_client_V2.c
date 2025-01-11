@@ -22,6 +22,13 @@
 
 int main(int argc, char *argv[]) {
 
+    char ip_dest[16];
+    int port_dest;
+
+    char buffer[LG_MESSAGE];
+
+    int nb; /* nb d’octets écrits et lus */
+
     int descripteurSocket;
     struct sockaddr_in sockaddrDistant;
     socklen_t longueurAdresse;
